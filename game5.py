@@ -6,16 +6,11 @@ from picamera2 import Picamera2
 import csv
 from datetime import datetime
 from math import degrees, atan2, asin
-
-
-
-
-
-
+from libcamera import Transform
 
 
 WINDOW_SIZE = (1280, 960)
-WINDOW_SIZE = (640, 480)
+# WINDOW_SIZE = (640, 480)
 
 MARKER_LENGTH = 50.0  
 TARGET_RADIUS = 30  
@@ -63,8 +58,8 @@ def get_new_target():
     y = random.randint(REGION_BOUNDS["y_min"], REGION_BOUNDS["y_max"])
     return (x, y)
 
-def point_inside_circle(px, py, cx, cy, r):
-    return (px - cx)**2 + (py - cy)**2 <= r**2
+def point_inside_circle(px, py, cx, cy,cz, r):
+    return (px - cx)**2 + (py - cy)**2 <= r**2 and cz <= r and cz >= r-10
 
 def get_new_radius():
     r = random.randint(RADIUS_BOUNDS["r_min"], RADIUS_BOUNDS["r_max"])
@@ -116,7 +111,7 @@ while True:
             else:
                 cz=int(150-(z)/10)
 
-            marker_center = (cx, cy)
+            marker_center = (cx , cy)
             cv2.circle(frame, marker_center, cz, (255, 0, 0), -1)
             
 
@@ -126,7 +121,8 @@ while True:
                 csv_writer.writerow([
                     f"{timestamp:.3f}", marker_id,
                     f"{x:.2f}", f"{y:.2f}", f"{z:.2f}",
-                    f"{yaw:.2f}", f"{pitch:.2f}", f"{roll:.2f}"
+                    f"{yaw:.2f}", f"{pitch:.2f}", f"{roll:.2f}",
+                    f"{trial:.2f}",f"{target_pos[0]:.2f}",f"{target_pos[1]:.2f}",f"{target_r:.2f}"
                 ])
 
     status_text = "Recording" if recording else "Not Recording"
@@ -139,7 +135,7 @@ while True:
     if trial_started and trial < NUM_TRIALS:
         color = (0, 0, 255)  
         if marker_center:
-            if point_inside_circle(marker_center[0], marker_center[1], target_pos[0], target_pos[1], target_r):
+            if point_inside_circle(marker_center[0], marker_center[1], target_pos[0], target_pos[1], cz, target_r):
                 if inside_since is None:
                     inside_since = time.time()
                     message = "Hold steady for 1 second..."
@@ -175,7 +171,7 @@ while True:
                     (250, 30 + 30 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
     if time.time() - message_time <= MESSAGE_DURATION:
         cv2.putText(frame, message, (30, 80),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2, cv2.LINE_AA)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0),2, cv2.LINE_AA)
 
     cv2.imshow("Target Challenge", frame)
 
@@ -202,7 +198,8 @@ while True:
             csv_writer.writerow([
                 "Time (s)", "Marker ID",
                 "X (mm)", "Y (mm)", "Z (mm)",
-                "Yaw (deg)", "Pitch (deg)", "Roll (deg)"
+                "Yaw (deg)", "Pitch (deg)", "Roll (deg)",
+                "Marker No", "X ", "Y ","R"
             ])
             recording = True
             print(f"Recording started: {filename}")
