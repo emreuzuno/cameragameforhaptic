@@ -6,10 +6,16 @@ from picamera2 import Picamera2
 import csv
 from datetime import datetime
 from math import degrees, atan2, asin
-from libcamera import Transform
+
+
+
+
+
+
+
 
 WINDOW_SIZE = (1280, 960)
-# WINDOW_SIZE = (640, 480)
+WINDOW_SIZE = (640, 480)
 
 MARKER_LENGTH = 50.0  
 TARGET_RADIUS = 30  
@@ -71,7 +77,7 @@ target_pos = get_new_target()
 target_r = get_new_radius()
 inside_since = None
 start_time = None
-
+marker_id = None
 
 # recording stuff
 recording = False
@@ -100,13 +106,19 @@ while True:
         for i in range(len(ids)):
             cv2.aruco.drawDetectedMarkers(frame, corners)
             corner_pts = corners[i][0]
-            cx = int(np.mean(corner_pts[:, 0]))
-            cy = int(np.mean(corner_pts[:, 1]))
-            marker_id = ids[i][0]
             x, y, z = tvecs[i][0] 
             rvec = rvecs[i]
+            cx = int(np.mean(corner_pts[:, 0]))
+            cy = int(np.mean(corner_pts[:, 1]))
+
+            if (150-(z)/10) <= 20:
+                cz=int(20)
+            else:
+                cz=int(150-(z)/10)
+
             marker_center = (cx, cy)
-            cv2.circle(frame, marker_center, 5, (255, 0, 0), -1)
+            cv2.circle(frame, marker_center, cz, (255, 0, 0), -1)
+            
 
             if recording and csv_writer:
                 timestamp = time.time() - start_time

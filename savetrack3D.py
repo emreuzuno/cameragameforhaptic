@@ -6,6 +6,10 @@ import csv
 from datetime import datetime
 from math import degrees, atan2, asin
 from libcamera import Transform
+
+
+from libcamera import Transform
+
 # === Helper: Convert rvec to Euler angles ===
 def rvec_to_euler(rvec):
     R, _ = cv2.Rodrigues(rvec)
@@ -33,9 +37,8 @@ ARUCO_DICT = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
 ARUCO_PARAMS = cv2.aruco.DetectorParameters_create()
 MARKER_LENGTH = 50.0  # mm (adjust to your marker size)
 
-# === Camera Setup ===
 picam2 = Picamera2()
-picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": (640, 480)}),transform=Transform(hflip=1))
+picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": (640, 480)},transform=Transform(hflip=1)))
 picam2.start()
 time.sleep(1)
 
@@ -52,6 +55,7 @@ start_time = None
 try:
     while True:
         frame = picam2.capture_array()
+        frame = cv2.flip(frame, 1) 
         gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
         corners, ids, _ = cv2.aruco.detectMarkers(gray, ARUCO_DICT, parameters=ARUCO_PARAMS)
