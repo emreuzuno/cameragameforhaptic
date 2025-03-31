@@ -7,6 +7,7 @@ import time
 CHECKERBOARD = (9, 6)  # number of inner corners per row/column
 SQUARE_SIZE = 25.0  # in mm
 NUM_IMAGES = 15
+WINDOW_SIZE = (1280, 960)
 
 # Termination criteria for cornerSubPix
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -21,15 +22,15 @@ imgpoints = []  # 2D points in image plane
 
 # Start camera
 picam2 = Picamera2()
-picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": (640, 480)}))
+picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": WINDOW_SIZE}))
 picam2.start()
 time.sleep(2)
 
 cv2.startWindowThread()
 
 count = 0
-print("📸 Press SPACE to capture an image for calibration")
-print("⌨️ Press ESC to finish and compute calibration")
+print("Press SPACE to capture an image for calibration")
+print("⌨Press ESC to finish and compute calibration")
 
 while True:
     frame = picam2.capture_array()
@@ -52,24 +53,25 @@ while True:
         objpoints.append(objp)
         imgpoints.append(corners2)
         count += 1
-        print(f"✅ Captured {count} images")
+        print(f"Captured {count} images")
 
     if count >= NUM_IMAGES:
-        print("🎯 Enough images captured. Press ESC to calibrate.")
+        print("Enough images captured. Press ESC to calibrate.")
         
 cv2.destroyAllWindows()
 
 if count >= 5:
-    print("🔧 Calibrating...")
+    print("Calibrating...")
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
         objpoints, imgpoints, gray.shape[::-1], None, None)
     
-    print("\n🎉 Calibration Complete:")
+    
+    print("\n alibration Complete:")
     print("Camera Matrix:\n", mtx)
     print("Distortion Coefficients:\n", dist.ravel())
 
     # Save calibration
     np.savez("calibration_data.npz", camera_matrix=mtx, dist_coeffs=dist)
-    print("\n📁 Saved to calibration_data.npz")
+    print("\n Saved to calibration_data.npz")
 else:
-    print("⚠️ Not enough images captured. Try again.")
+    print("Not enough images captured. Try again.")

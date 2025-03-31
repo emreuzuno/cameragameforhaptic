@@ -25,23 +25,18 @@ while True:
     frame = picam2.capture_array()
     gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
-    # Detect ArUco markers
     corners, ids, rejected = cv2.aruco.detectMarkers(gray, ARUCO_DICT, parameters=ARUCO_PARAMS)
 
     if ids is not None:
-        # Draw detected markers
         cv2.aruco.drawDetectedMarkers(frame, corners, ids)
 
-        # Estimate pose of each marker
         rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
             corners, MARKER_LENGTH, camera_matrix, dist_coeffs
         )
 
         for i in range(len(ids)):
-            # Draw 3D axes
             cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvecs[i], tvecs[i], MARKER_LENGTH * 0.5)
 
-            # Get XYZ position
             x, y, z = tvecs[i][0]
             cv2.putText(frame, f"ID:{ids[i][0]} X:{x:.1f} Y:{y:.1f} Z:{z:.1f} mm",
                         (10, 30 + 30 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
@@ -49,7 +44,7 @@ while True:
 
     cv2.imshow("ArUco Tracker", frame)
     key = cv2.waitKey(1) & 0xFF
-    if key == 27:  # ESC to quit
+    if key == 27:  
         break
 
 cv2.destroyAllWindows()
