@@ -3,6 +3,9 @@ import numpy as np
 import random
 import time
 from picamera2 import Picamera2
+import csv
+from datetime import datetime
+from math import degrees, atan2, asin
 
 WINDOW_SIZE = (1280, 960)
 MARKER_LENGTH = 50.0  
@@ -12,7 +15,7 @@ REGION_BOUNDS = {
     "y_min": 200, "y_max": 760
 }
 RADIUS_BOUNDS = {
-    "r_min": 200, "r_max": 1080
+    "r_min": 30, "r_max": 60
 }
 NUM_TRIALS = 10
 TARGET_HOLD_TIME = 1.0
@@ -27,6 +30,22 @@ picam2 = Picamera2()
 picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": WINDOW_SIZE}))
 picam2.start()
 time.sleep(1)
+
+def rvec_to_euler(rvec):
+    R, _ = cv2.Rodrigues(rvec)
+    sy = (R[0, 0]**2 + R[1, 0]**2)**0.5
+    singular = sy < 1e-6
+
+    if not singular:
+        x = atan2(R[2, 1], R[2, 2])
+        y = atan2(-R[2, 0], sy)
+        z = atan2(R[1, 0], R[0, 0])
+    else:
+        x = atan2(-R[1, 2], R[1, 1])
+        y = atan2(-R[2, 0], sy)
+        z = 0
+
+    return degrees(z), degrees(y), degrees(x)  # yaw, pitch, roll
 
 def get_new_target():
     x = random.randint(REGION_BOUNDS["x_min"], REGION_BOUNDS["x_max"])
@@ -44,7 +63,14 @@ cv2.startWindowThread()
 trial_started = False
 trial = 0
 target_pos = get_new_target()
+target_r = get_new_radius()
 inside_since = None
+start_time = None
+# recording stuff
+recording = False
+csv_file = None
+csv_writer = None
+recording_count = 0
 start_time = None
 
 message = "Press SPACE to start session"
@@ -67,14 +93,32 @@ while True:
             corner_pts = corners[i][0]
             cx = int(np.mean(corner_pts[:, 0]))
             cy = int(np.mean(corner_pts[:, 1]))
+            marker_id = ids[i][0]
+            x, y, z = tvecs[i][0]
+            rvec = rvecs[i]
             marker_center = (cx, cy)
             cv2.circle(frame, marker_center, 5, (255, 0, 0), -1)
-            break  
+
+            if recording and csv_writer:
+                timestamp = time.time() - start_time
+                yaw, pitch, roll = rvec_to_euler(rvec)
+                csv_writer.writerow([
+                    f"{timestamp:.3f}", marker_id,
+                    f"{x:.2f}", f"{y:.2f}", f"{z:.2f}",
+                    f"{yaw:.2f}", f"{pitch:.2f}", f"{roll:.2f}"
+                ])
+
+    status_text = "Recording" if recording else "Not Recording"
+    color = (0, 0, 255) if recording else (200, 200, 200)
+    cv2.putText(frame, status_text, (100, frame.shape[0] - 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+
+
+     
 
     if trial_started and trial < NUM_TRIALS:
         color = (0, 0, 255)  
         if marker_center:
-            if point_inside_circle(marker_center[0], marker_center[1], target_pos[0], target_pos[1], TARGET_RADIUS):
+            if point_inside_circle(marker_center[0], marker_center[1], target_pos[0], target_pos[1], target_r):
                 if inside_since is None:
                     inside_since = time.time()
                     message = "Hold steady for 1 second..."
@@ -84,6 +128,7 @@ while True:
                     message_time = time.time()
                     trial += 1
                     target_pos = get_new_target()
+                    target_r = get_new_radius()
                     inside_since = None
                     continue 
                 color = (0, 255, 0)  
@@ -91,11 +136,12 @@ while True:
                 inside_since = None
 
         
-        cv2.circle(frame, target_pos, TARGET_RADIUS, color, 3)
+        cv2.circle(frame, target_pos, target_r, color, 3)
 
     else:
         cv2.putText(frame, "Press SPACE to start", (450, 480),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+
 
     if trial_started:
         cv2.putText(frame, f"Target: {trial + 1}/{NUM_TRIALS}", (10, 30),
@@ -109,7 +155,7 @@ while True:
         cv2.putText(frame, message, (30, 80),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2, cv2.LINE_AA)
 
-    cv2.imshow("Haptic Target Challenge", frame)
+    cv2.imshow("Target Challenge", frame)
 
     key = cv2.waitKey(1) & 0xFF
     if key == 27:  
@@ -118,10 +164,32 @@ while True:
         trial_started = True
         trial = 0
         target_pos = get_new_target()
+        target_r = get_new_radius()
         inside_since = None
         start_time = time.time()
         message = "Session started"
         message_time = time.time()
 
+        if not recording:
+            recording_count += 1
+            start_time = time.time()
+            timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"tracking_record_{recording_count}_{timestamp_str}.csv"
+            csv_file = open(filename, mode='w', newline='')
+            csv_writer = csv.writer(csv_file)
+            csv_writer.writerow([
+                "Time (s)", "Marker ID",
+                "X (mm)", "Y (mm)", "Z (mm)",
+                "Yaw (deg)", "Pitch (deg)", "Roll (deg)"
+            ])
+            recording = True
+            print(f"Recording started: {filename}")
+        else:
+            recording = False
+            csv_file.close()
+            csv_writer = None
+            print(f"Recording saved.")
+
 print("Done! All targets completed.")
+
 cv2.destroyAllWindows()
