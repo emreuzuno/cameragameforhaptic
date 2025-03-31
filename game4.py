@@ -6,8 +6,11 @@ from picamera2 import Picamera2
 import csv
 from datetime import datetime
 from math import degrees, atan2, asin
+from libcamera import Transform
 
 WINDOW_SIZE = (1280, 960)
+# WINDOW_SIZE = (640, 480)
+
 MARKER_LENGTH = 50.0  
 TARGET_RADIUS = 30  
 REGION_BOUNDS = {
@@ -27,7 +30,9 @@ with np.load("calibration_data.npz") as data:
     dist_coeffs = data['dist_coeffs']
 
 picam2 = Picamera2()
-picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": WINDOW_SIZE}))
+picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": WINDOW_SIZE},transform=Transform(hflip=1)))
+# picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": WINDOW_SIZE}))
+
 picam2.start()
 time.sleep(1)
 
@@ -66,6 +71,7 @@ target_pos = get_new_target()
 target_r = get_new_radius()
 inside_since = None
 start_time = None
+
 # recording stuff
 recording = False
 csv_file = None
@@ -80,7 +86,9 @@ MESSAGE_DURATION = 2.0
 print("Press SPACE to start the session. ESC to exit.")
 
 while True:
+
     frame = picam2.capture_array()
+    frame = cv2.flip(frame, 1)  
     gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
     corners, ids, _ = cv2.aruco.detectMarkers(gray, ARUCO_DICT, parameters=ARUCO_PARAMS)
@@ -144,7 +152,7 @@ while True:
 
 
     if trial_started:
-        cv2.putText(frame, f"Target: {trial + 1}/{NUM_TRIALS}", (10, 30),
+        cv2.putText(frame, f"Target: {trial}/{NUM_TRIALS}", (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 200, 50), 2)
 
     if marker_center:

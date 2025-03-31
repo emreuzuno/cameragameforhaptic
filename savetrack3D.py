@@ -5,7 +5,7 @@ import time
 import csv
 from datetime import datetime
 from math import degrees, atan2, asin
-
+from libcamera import Transform
 # === Helper: Convert rvec to Euler angles ===
 def rvec_to_euler(rvec):
     R, _ = cv2.Rodrigues(rvec)
@@ -35,7 +35,7 @@ MARKER_LENGTH = 50.0  # mm (adjust to your marker size)
 
 # === Camera Setup ===
 picam2 = Picamera2()
-picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": (640, 480)}))
+picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": (640, 480)}),transform=Transform(hflip=1))
 picam2.start()
 time.sleep(1)
 
