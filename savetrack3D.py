@@ -32,14 +32,19 @@ with np.load("calibration_data.npz") as data:
 ARUCO_DICT = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
 ARUCO_PARAMS = cv2.aruco.DetectorParameters_create()
 MARKER_LENGTH = 50.0  
+WINDOW_SIZE = (1280, 960)
 
 picam2 = Picamera2()
-picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": (640, 480)},transform=Transform(hflip=1)))
+# picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": (640, 480)}))
+
+picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": WINDOW_SIZE},transform=Transform(hflip=1)))
+picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": WINDOW_SIZE}))
+
 picam2.start()
 time.sleep(1)
 
 cv2.startWindowThread()
-print("🔄 Press SPACE to start/stop recording, ESC to quit.")
+print("Press SPACE to start/stop recording, ESC to quit.")
 
 recording = False
 csv_file = None
@@ -50,10 +55,25 @@ start_time = None
 try:
     while True:
         frame = picam2.capture_array()
-        frame = cv2.flip(frame, 1) 
+        # frame = cv2.flip(frame, 1) 
         gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        # gray = cv2.flip(gray, 1)
 
         corners, ids, _ = cv2.aruco.detectMarkers(gray, ARUCO_DICT, parameters=ARUCO_PARAMS)
+      
+
+      
+        # if corners is not None:
+        #     for corner in corners:
+        #         print(corner[0][:, 0])
+        #         print(gray.shape[0])
+        #         corner[0][:, 0] = WINDOW_SIZE[0] - corner[0][:, 0]  
+        #         # corner[0][:, 2] = gray.shape[0] - corner[0][:, 2]    
+
+        # if corners is not None:
+        #     for corner in corners:
+        #         print(corner)
+        # print(corners)
 
         if ids is not None:
             cv2.aruco.drawDetectedMarkers(frame, corners, ids)
@@ -78,11 +98,17 @@ try:
                         f"{yaw:.2f}", f"{pitch:.2f}", f"{roll:.2f}"
                     ])
 
+
+        # frame = cv2.flip(frame, 1) 
+        # flipped_frame = np.fliplr(frame)
+        # flipped_frame = cv2.flip(frame, 1)
+
+        frame = cv2.flip(frame, 1) 
         status_text = "Recording" if recording else "Not Recording"
         color = (0, 0, 255) if recording else (200, 200, 200)
-        cv2.putText(frame, status_text, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+        cv2.putText(frame, status_text, (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+        im = cv2.imshow("Pose Tracker", frame)
 
-        cv2.imshow("Pose Tracker", frame)
         key = cv2.waitKey(1) & 0xFF
 
         if key == 27:  # ESC to quit

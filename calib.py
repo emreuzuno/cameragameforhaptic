@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from picamera2 import Picamera2
 import time
+from libcamera import Transform
 
 # Calibration settings
 CHECKERBOARD = (9, 6)  # number of inner corners per row/column
@@ -23,6 +24,8 @@ imgpoints = []  # 2D points in image plane
 # Start camera
 picam2 = Picamera2()
 picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": WINDOW_SIZE}))
+picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": WINDOW_SIZE},transform=Transform(hflip=1)))
+
 picam2.start()
 time.sleep(2)
 
@@ -30,7 +33,7 @@ cv2.startWindowThread()
 
 count = 0
 print("Press SPACE to capture an image for calibration")
-print("⌨Press ESC to finish and compute calibration")
+print("Press ESC to finish and compute calibration")
 
 while True:
     frame = picam2.capture_array()
