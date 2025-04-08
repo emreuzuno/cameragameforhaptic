@@ -4,8 +4,7 @@ from picamera2 import Picamera2
 import time
 import csv
 from datetime import datetime
-from math import degrees, atan2, asin
-
+from math import degrees, atan2
 
 from libcamera import Transform
 
@@ -25,21 +24,19 @@ def rvec_to_euler(rvec):
 
     return degrees(z), degrees(y), degrees(x)  
 
+# Load camera calibration data
 with np.load("calibration_data.npz") as data:
     camera_matrix = data['camera_matrix']
     dist_coeffs = data['dist_coeffs']
 
 ARUCO_DICT = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
 ARUCO_PARAMS = cv2.aruco.DetectorParameters_create()
-MARKER_LENGTH = 50.0  
+MARKER_LENGTH = 50.0  # mm
 WINDOW_SIZE = (1280, 960)
 
+# Initialize camera
 picam2 = Picamera2()
-# picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": (640, 480)}))
-
-picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": WINDOW_SIZE},transform=Transform(hflip=1)))
 picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": WINDOW_SIZE}))
-
 picam2.start()
 time.sleep(1)
 
@@ -55,65 +52,52 @@ start_time = None
 try:
     while True:
         frame = picam2.capture_array()
-        # frame = cv2.flip(frame, 1) 
         gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        # gray = cv2.flip(gray, 1)
 
         corners, ids, _ = cv2.aruco.detectMarkers(gray, ARUCO_DICT, parameters=ARUCO_PARAMS)
-      
-
-      
-        # if corners is not None:
-        #     for corner in corners:
-        #         print(corner[0][:, 0])
-        #         print(gray.shape[0])
-        #         corner[0][:, 0] = WINDOW_SIZE[0] - corner[0][:, 0]  
-        #         # corner[0][:, 2] = gray.shape[0] - corner[0][:, 2]    
-
-        # if corners is not None:
-        #     for corner in corners:
-        #         print(corner)
-        # print(corners)
 
         if ids is not None:
             cv2.aruco.drawDetectedMarkers(frame, corners, ids)
             rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, MARKER_LENGTH, camera_matrix, dist_coeffs)
 
+            marker_data = {}
+
             for i in range(len(ids)):
                 marker_id = ids[i][0]
-                x, y, z = tvecs[i][0]
-                rvec = rvecs[i]
+                if marker_id in [0, 1]:
+                    x, y, z = tvecs[i][0]
+                    rvec = rvecs[i]
+                    marker_data[marker_id] = (x, y, z, rvec)
 
-                cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvec, tvecs[i], MARKER_LENGTH * 0.5)
+                    cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvec, tvecs[i], MARKER_LENGTH * 0.5)
+                    cv2.putText(frame, f"ID:{marker_id} X:{x:.1f} Y:{y:.1f} Z:{z:.1f}",
+                                (10, 30 + 30 * marker_id), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
-                cv2.putText(frame, f"ID:{marker_id} X:{x:.1f} Y:{y:.1f} Z:{z:.1f}",
-                            (10, 30 + 30 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+            if recording and csv_writer and 0 in marker_data and 1 in marker_data:
+                timestamp = time.time() - start_time
+                x0, y0, z0, rvec0 = marker_data[0]
+                x1, y1, z1, rvec1 = marker_data[1]
 
-                if recording and csv_writer:
-                    timestamp = time.time() - start_time
-                    yaw, pitch, roll = rvec_to_euler(rvec)
-                    csv_writer.writerow([
-                        f"{timestamp:.3f}", marker_id,
-                        f"{x:.2f}", f"{y:.2f}", f"{z:.2f}",
-                        f"{yaw:.2f}", f"{pitch:.2f}", f"{roll:.2f}"
-                    ])
+                yaw0, pitch0, roll0 = rvec_to_euler(rvec0)
+                yaw1, pitch1, roll1 = rvec_to_euler(rvec1)
 
-
-        # frame = cv2.flip(frame, 1) 
-        # flipped_frame = np.fliplr(frame)
-        # flipped_frame = cv2.flip(frame, 1)
+                csv_writer.writerow([
+                    f"{timestamp:.3f}",
+                    f"{x0:.2f}", f"{y0:.2f}", f"{z0:.2f}", f"{yaw0:.2f}", f"{pitch0:.2f}", f"{roll0:.2f}",
+                    f"{x1:.2f}", f"{y1:.2f}", f"{z1:.2f}", f"{yaw1:.2f}", f"{pitch1:.2f}", f"{roll1:.2f}"
+                ])
 
         frame = cv2.flip(frame, 1) 
         status_text = "Recording" if recording else "Not Recording"
         color = (0, 0, 255) if recording else (200, 200, 200)
         cv2.putText(frame, status_text, (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-        im = cv2.imshow("Pose Tracker", frame)
+        cv2.imshow("Pose Tracker", frame)
 
         key = cv2.waitKey(1) & 0xFF
 
         if key == 27:  # ESC to quit
             break
-        elif key == 32:  # SPACE to start/stop 
+        elif key == 32:  # SPACE to start/stop recording
             if not recording:
                 recording_count += 1
                 start_time = time.time()
@@ -122,15 +106,16 @@ try:
                 csv_file = open(filename, mode='w', newline='')
                 csv_writer = csv.writer(csv_file)
                 csv_writer.writerow([
-                    "Time (s)", "Marker ID",
-                    "X (mm)", "Y (mm)", "Z (mm)",
-                    "Yaw (deg)", "Pitch (deg)", "Roll (deg)"
+                    "Time (s)",
+                    "X0 (mm)", "Y0 (mm)", "Z0 (mm)", "Yaw0 (deg)", "Pitch0 (deg)", "Roll0 (deg)",
+                    "X1 (mm)", "Y1 (mm)", "Z1 (mm)", "Yaw1 (deg)", "Pitch1 (deg)", "Roll1 (deg)"
                 ])
                 recording = True
-                print(f"▶Recording started: {filename}")
+                print(f"Recording started: {filename}")
             else:
                 recording = False
-                csv_file.close()
+                if csv_file:
+                    csv_file.close()
                 csv_writer = None
                 print(f"Recording saved.")
 

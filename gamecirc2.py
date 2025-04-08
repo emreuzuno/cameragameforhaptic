@@ -99,11 +99,22 @@ while True:
 
     if ids is not None:
         rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, MARKER_LENGTH, camera_matrix, dist_coeffs)
+        marker_data = {}
+
         for i in range(len(ids)):
             cv2.aruco.drawDetectedMarkers(frame, corners)
             corner_pts = corners[i][0]
             x, y, z = tvecs[i][0] 
             rvec = rvecs[i]
+            marker_data[marker_id] = (x, y, z, rvec)
+            marker_id = ids[i][0]
+            # if i ==1:
+            #     cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvec[0], tvecs[0], MARKER_LENGTH * 0.5)
+            if marker_id in [0, 1]:
+                x, y, z = tvecs[i][0]
+                rvec = rvecs[i]
+                marker_data[marker_id] = (x, y, z, rvec)
+
             if ids[i][0] == 0:
                 cx = int(np.mean(corner_pts[:, 0]))
                 cy = int(np.mean(corner_pts[:, 1]))
@@ -117,15 +128,23 @@ while True:
                 cv2.circle(frame, marker_center, cz, (255, 0, 0), -1)
                 
 
-                if recording and csv_writer:
+                if recording and csv_writer and 0 in marker_data and 1 in marker_data:
                     timestamp = time.time() - start_time
                     yaw, pitch, roll = rvec_to_euler(rvec)
+                    x0, y0, z0, rvec0 = marker_data[0]
+                    x1, y1, z1, rvec1 = marker_data[1]
+
+                    yaw0, pitch0, roll0 = rvec_to_euler(rvec0)
+                    yaw1, pitch1, roll1 = rvec_to_euler(rvec1)
+
                     csv_writer.writerow([
-                        f"{timestamp:.3f}", marker_id,
-                        f"{x:.2f}", f"{y:.2f}", f"{z:.2f}",
-                        f"{yaw:.2f}", f"{pitch:.2f}", f"{roll:.2f}",
-                        f"{trial:.2f}",f"{target_pos[0]:.2f}",f"{target_pos[1]:.2f}",f"{target_r:.2f}"
-                    ])
+                    f"{timestamp:.3f}",
+                    f"{x0:.2f}", f"{y0:.2f}", f"{z0:.2f}", f"{yaw0:.2f}", f"{pitch0:.2f}", f"{roll0:.2f}",
+                    f"{x1:.2f}", f"{y1:.2f}", f"{z1:.2f}", f"{yaw1:.2f}", f"{pitch1:.2f}", f"{roll1:.2f}",
+                    f"{trial:.2f}",f"{target_pos[0]:.2f}",f"{target_pos[1]:.2f}",f"{target_r:.2f}"
+                    ])                    
+
+
 
     status_text = "Recording" if recording else "Not Recording"
     color = (0, 0, 255) if recording else (200, 200, 200)
@@ -201,10 +220,11 @@ while True:
             filename = f"tracking_record_{recording_count}_{timestamp_str}.csv"
             csv_file = open(filename, mode='w', newline='')
             csv_writer = csv.writer(csv_file)
+
             csv_writer.writerow([
-                "Time (s)", "Marker ID",
-                "X (mm)", "Y (mm)", "Z (mm)",
-                "Yaw (deg)", "Pitch (deg)", "Roll (deg)",
+                "Time (s)",
+                "X0 (mm)", "Y0 (mm)", "Z0 (mm)", "Yaw0 (deg)", "Pitch0 (deg)", "Roll0 (deg)",
+                "X1 (mm)", "Y1 (mm)", "Z1 (mm)", "Yaw1 (deg)", "Pitch1 (deg)", "Roll1 (deg)",
                 "Marker No", "X ", "Y ","R"
             ])
             recording = True
