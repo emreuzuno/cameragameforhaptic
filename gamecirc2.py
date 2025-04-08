@@ -127,32 +127,32 @@ while True:
                 marker_center = (cx , cy)
                 cv2.circle(frame, marker_center, cz, (255, 0, 0), -1)
                 
-            if recording and csv_writer and 0 in marker_data and 1 in marker_data:
-                timestamp = time.time() - start_time
-                if 0 in ids and 1 in ids:
-                    x0, y0, z0, rvec0 = marker_data[0]
-                    x1, y1, z1, rvec1 = marker_data[1]
+        if recording and csv_writer:
+            timestamp = time.time() - start_time
+            if 0 in ids and 1 in ids:
+                x0, y0, z0, rvec0 = marker_data[0]
+                x1, y1, z1, rvec1 = marker_data[1]
 
-                    yaw0, pitch0, roll0 = rvec_to_euler(rvec0)
-                    yaw1, pitch1, roll1 = rvec_to_euler(rvec1)
-                elif 0 in ids and 1 not in ids:
-                    x0, y0, z0, rvec0 = marker_data[0]
-                    yaw0, pitch0, roll0 = rvec_to_euler(rvec0)
-                    x1 = y1 = z1 = yaw1 = pitch1 = roll1 = 0
-                elif 0 not in ids and 1 in ids:
-                    x1, y1, z1, rvec1 = marker_data[1]
-                    yaw1, pitch1, roll1 = rvec_to_euler(rvec1)
-                    x0 = y0 = z0 = yaw0 = pitch0 = roll0 = 0
-                else:
-                    x0 = y0 = z0 = yaw0 = pitch0 = roll0 = 0
-                    x1 = y1 = z1 = yaw1 = pitch1 = roll1 = 0
+                yaw0, pitch0, roll0 = rvec_to_euler(rvec0)
+                yaw1, pitch1, roll1 = rvec_to_euler(rvec1)
+            elif 0 in ids and 1 not in ids:
+                x0, y0, z0, rvec0 = marker_data[0]
+                yaw0, pitch0, roll0 = rvec_to_euler(rvec0)
+                x1 = y1 = z1 = yaw1 = pitch1 = roll1 = 0
+            elif 0 not in ids and 1 in ids:
+                x1, y1, z1, rvec1 = marker_data[1]
+                yaw1, pitch1, roll1 = rvec_to_euler(rvec1)
+                x0 = y0 = z0 = yaw0 = pitch0 = roll0 = 0
+            else:
+                x0 = y0 = z0 = yaw0 = pitch0 = roll0 = 0
+                x1 = y1 = z1 = yaw1 = pitch1 = roll1 = 0
 
-                csv_writer.writerow([
-                f"{timestamp:.3f}", 0,
-                f"{x0:.2f}", f"{y0:.2f}", f"{z0:.2f}", f"{yaw0:.2f}", f"{pitch0:.2f}", f"{roll0:.2f}",1,
-                f"{x1:.2f}", f"{y1:.2f}", f"{z1:.2f}", f"{yaw1:.2f}", f"{pitch1:.2f}", f"{roll1:.2f}",
-                f"{trial:.2f}",f"{target_pos[0]:.2f}",f"{target_pos[1]:.2f}",f"{target_r:.2f}"
-                ])                    
+            csv_writer.writerow([
+            f"{timestamp:.3f}", 0,
+            f"{x0:.2f}", f"{y0:.2f}", f"{z0:.2f}", f"{yaw0:.2f}", f"{pitch0:.2f}", f"{roll0:.2f}",1,
+            f"{x1:.2f}", f"{y1:.2f}", f"{z1:.2f}", f"{yaw1:.2f}", f"{pitch1:.2f}", f"{roll1:.2f}",
+            f"{trial:.2f}",f"{target_pos[0]:.2f}",f"{target_pos[1]:.2f}",f"{target_r:.2f}"
+            ])                    
 
 
 

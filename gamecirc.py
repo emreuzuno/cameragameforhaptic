@@ -15,11 +15,14 @@ WINDOW_SIZE = (1280, 960)
 MARKER_LENGTH = 50.0  
 TARGET_RADIUS = 30  
 REGION_BOUNDS = {
-    "x_min": 200, "x_max": 1080,
+    "x_min": 100, "x_max": 980,
     "y_min": 200, "y_max": 760
 }
+# RADIUS_BOUNDS = {
+#     "r_min": 30, "r_max": 60
+# }
 RADIUS_BOUNDS = {
-    "r_min": 30, "r_max": 60
+    "r_min": 65, "r_max": 90
 }
 NUM_TRIALS = 10
 TARGET_HOLD_TIME = 1.0
@@ -108,10 +111,10 @@ while True:
                 cx = int(np.mean(corner_pts[:, 0]))
                 cy = int(np.mean(corner_pts[:, 1]))
 
-                if (150-(z)/10) <= 20:
-                    cz=int(20)
+                if (200-(z)/10) <= 40:
+                    cz=int(40)
                 else:
-                    cz=int(150-(z)/10)
+                    cz=int(200-(z)/10)
 
                 marker_center = (cx , cy)
                 cv2.circle(frame, marker_center, cz, (255, 0, 0), -1)
@@ -213,6 +216,7 @@ while True:
             recording = False
             csv_file.close()
             csv_writer = None
+            
             print(f"Recording saved.")
 
 print("Done! All targets completed.")
