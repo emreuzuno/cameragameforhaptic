@@ -77,7 +77,7 @@ target_r = get_new_radius()
 inside_since = None
 start_time = None
 marker_id = None
-
+end_time = None
 # recording stuff
 recording = False
 csv_file = None
@@ -87,7 +87,7 @@ start_time = None
 
 message = "Press SPACE to start session"
 message_time = time.time()
-MESSAGE_DURATION = 2.0  
+MESSAGE_DURATION = 5.0  
 
 print("Press SPACE to start the session. ESC to exit.")
 
@@ -134,8 +134,13 @@ while True:
     color = (0, 0, 255) if recording else (200, 200, 200)
     cv2.putText(frame, status_text, (100, frame.shape[0] - 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
-
-     
+    if trial_started and trial == NUM_TRIALS:
+        if end_time is None:  # Ensure this block runs only once
+            end_time = time.time()
+            print(end_time-start_time)
+            print(f"TRIAL COMPLETED")
+            message = f"Task Completed, Your Score: {end_time - start_time:.2f}!"
+            message_time = time.time()
 
     if trial_started and trial < NUM_TRIALS:
         color = (0, 0, 255)  
@@ -143,7 +148,7 @@ while True:
             if point_inside_circle(marker_center[0], marker_center[1], target_pos[0], target_pos[1], cz, target_r):
                 if inside_since is None:
                     inside_since = time.time()
-                    message = "Hold steady for 1 second..."
+                    
                     message_time = time.time()
                 elif time.time() - inside_since >= TARGET_HOLD_TIME:
                     message = f"Target {trial + 1} reached!"
@@ -157,8 +162,6 @@ while True:
             else:
                 inside_since = None
 
-
-                
 
         
         cv2.circle(frame, target_pos, target_r, color, 3)
@@ -179,8 +182,12 @@ while True:
         cv2.putText(frame, f"ID:{marker_id} X:{x:.1f} Y:{y:.1f} Z:{z:.1f}",
                     (250, 30 + 30 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
     if time.time() - message_time <= MESSAGE_DURATION:
-        cv2.putText(frame, message, (30, 80),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0),2, cv2.LINE_AA)
+        if end_time is not None: 
+            cv2.putText(frame, message, (200, 450),
+                    cv2.FONT_HERSHEY_COMPLEX, 1.5, (0, 255, 255), 2, cv2.LINE_AA)          
+        else:
+            cv2.putText(frame, message, (30, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
 
     cv2.imshow("Target Challenge", frame)
 
@@ -196,7 +203,6 @@ while True:
         start_time = time.time()
         message = "Session started"
         message_time = time.time()
-
         if not recording:
             recording_count += 1
             start_time = time.time()
@@ -212,13 +218,25 @@ while True:
             ])
             recording = True
             print(f"Recording started: {filename}")
+            
         else:
+            print(trial)
             recording = False
             csv_file.close()
             csv_writer = None
             
+            end_time = time.time()
+            
             print(f"Recording saved.")
+    if trial ==11 and trial_started:
+        end_time = time.time()
+        print(end_time)
+        print(f"Recording saved.")
+    # if trial ==10 and trial_started:
+    #     end_time = time.time()
+    #     print(end_time)
+    #     print(f"Recording saved.")
 
 print("Done! All targets completed.")
-
+# print(f"Completion time: {end_time - start_time:.2f} seconds")
 cv2.destroyAllWindows()
