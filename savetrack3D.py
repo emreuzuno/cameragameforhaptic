@@ -85,13 +85,14 @@ try:
                 rvec = rvecs[i]
 
                 cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvec, tvecs[i], MARKER_LENGTH * 0.5)
-
+                # print(marker_id)
                 cv2.putText(frame, f"ID:{marker_id} X:{x:.1f} Y:{y:.1f} Z:{z:.1f}",
                             (10, 30 + 30 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
                 if recording and csv_writer:
                     timestamp = time.time() - start_time
                     yaw, pitch, roll = rvec_to_euler(rvec)
+                
                     csv_writer.writerow([
                         f"{timestamp:.3f}", marker_id,
                         f"{x:.2f}", f"{y:.2f}", f"{z:.2f}",

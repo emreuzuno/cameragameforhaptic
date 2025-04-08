@@ -198,7 +198,7 @@ while True:
             recording_count += 1
             start_time = time.time()
             timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"tracking_record_{recording_count}_{timestamp_str}.csv"
+            filename = f"circlegame_rec{recording_count}_{timestamp_str}.csv"
             csv_file = open(filename, mode='w', newline='')
             csv_writer = csv.writer(csv_file)
             csv_writer.writerow([
