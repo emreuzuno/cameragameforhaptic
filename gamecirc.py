@@ -24,7 +24,7 @@ REGION_BOUNDS = {
 RADIUS_BOUNDS = {
     "r_min": 67, "r_max": 96
 }
-NUM_TRIALS = 10
+NUM_TRIALS = 4
 TARGET_HOLD_TIME = 1.0
 ARUCO_DICT = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
 ARUCO_PARAMS = cv2.aruco.DetectorParameters_create()
@@ -125,7 +125,7 @@ while True:
                     yaw, pitch, roll = rvec_to_euler(rvec)
                     csv_writer.writerow([
                         f"{timestamp:.3f}", marker_id,
-                        f"{x:.2f}", f"{y:.2f}", f"{z:.2f}",
+                        f"{cx:.2f}", f"{cy:.2f}", f"{cz:.2f}",
                         f"{yaw:.2f}", f"{pitch:.2f}", f"{roll:.2f}",
                         f"{trial:.2f}",f"{target_pos[0]:.2f}",f"{target_pos[1]:.2f}",f"{target_r:.2f}"
                     ])
