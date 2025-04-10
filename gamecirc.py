@@ -22,7 +22,7 @@ REGION_BOUNDS = {
 #     "r_min": 30, "r_max": 60
 # }
 RADIUS_BOUNDS = {
-    "r_min": 65, "r_max": 90
+    "r_min": 67, "r_max": 96
 }
 NUM_TRIALS = 10
 TARGET_HOLD_TIME = 1.0
